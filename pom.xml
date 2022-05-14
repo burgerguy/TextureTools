@@ -15,18 +15,22 @@
 
     <repositories>
         <repository>
-            <id>spantus</id>
-            <name>spantus sourceforge</name>
-            <url>https://spantus.sourceforge.net/maven/global/</url>
+            <id>kenzie</id>
+            <name>Kenzie's Repository</name>
+            <url>https://repo.kenzie.mx/releases</url>
         </repository>
     </repositories>
 
     <dependencies>
         <dependency>
-            <groupId>net.sf</groupId>
-            <artifactId>javaml</artifactId>
-            <version>0.1.7</version>
+            <groupId>mx.kenzie</groupId>
+            <artifactId>mirror</artifactId>
+            <version>5.0.4</version>
+        </dependency>
+        <dependency>
+            <groupId>mx.kenzie</groupId>
+            <artifactId>mimic</artifactId>
+            <version>1.0.0</version>
         </dependency>
     </dependencies>
-
 </project>

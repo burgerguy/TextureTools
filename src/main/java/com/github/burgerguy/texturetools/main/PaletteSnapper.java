@@ -11,17 +11,19 @@
 
 package com.github.burgerguy.texturetools.main;
 
+import java.awt.Color;
+import java.awt.Image;
 import java.awt.Toolkit;
 import java.awt.image.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import javax.imageio.ImageIO;
-import sun.awt.image.ToolkitImage;
+import mx.kenzie.mirror.Mirror;
 
 public class PaletteSnapper {
 
-    private static final int[] RGB_COLOR_PALETTE = new int[] {
+    private static final int[] RGB_COLOR_PALETTE = addBrightnessVariants(new int[] {
             0x181818,
             0x272727,
             0x2e2e2e,
@@ -40,13 +42,27 @@ public class PaletteSnapper {
             0xdddddd,
             0xe2e2e2,
             0xc81c00,
-            0x69f0d9
-    };
+            0x69f0d9,
+            0xbd5e3b,
+            0xa54f32,
+            0xd66d48
+    });
     private static final double[][] LAB_COLOR_PALETTE = Arrays.stream(RGB_COLOR_PALETTE).mapToObj(PaletteSnapper::rgbToLab).toArray(double[][]::new);
     private static final int ALPHA_MASK = 0xFF000000;
-    private static final String IMAGE_PATH = "C:\\Users\\Ryan\\Documents\\GitHub\\recordable\\src\\main\\resources\\assets\\recordable\\textures\\block\\test";
+    private static final String IMAGE_PATH = "C:\\Users\\w\\Desktop\\recordable-assets\\test";
     private static final String IMAGE_FORMAT = "png";
     private static final String EXT_SEPARATOR = ".";
+
+    private static int[] addBrightnessVariants(int[] originalColors) {
+        int[] newColors = new int[originalColors.length * 3];
+        int idx = 0;
+        for (int color : originalColors) {
+            newColors[idx++] = color;
+            newColors[idx++] = new Color(color).brighter().getRGB();
+            newColors[idx++] = new Color(color).darker().getRGB();
+        }
+        return newColors;
+    }
 
     public static void main(String[] args) throws IOException {
         BufferedImage image = ImageIO.read(new File(IMAGE_PATH + EXT_SEPARATOR + IMAGE_FORMAT));
@@ -57,13 +73,13 @@ public class PaletteSnapper {
                 // if palette gets too big, swap to KD Tree with nearest neighbor search
                 // for now, we can just brute force
                 int nearestPaletteColor = 0;
-                double nearestDeltaK = Double.POSITIVE_INFINITY; // furthest as possible
+                double nearestDeltaKSquared = Double.POSITIVE_INFINITY; // furthest as possible
                 for (int i = 0; i < LAB_COLOR_PALETTE.length; i++) {
                     double[] pColorLAB = LAB_COLOR_PALETTE[i];
-                    double deltaK = compareLAB(colorLAB, pColorLAB);
-                    if (deltaK < nearestDeltaK) {
+                    double deltaKSquared = deltaKSquared(colorLAB, pColorLAB);
+                    if (deltaKSquared < nearestDeltaKSquared) {
                         nearestPaletteColor = RGB_COLOR_PALETTE[i];
-                        nearestDeltaK = deltaK;
+                        nearestDeltaKSquared = deltaKSquared;
                     }
                 }
 
@@ -71,14 +87,18 @@ public class PaletteSnapper {
             }
         };
         ImageProducer imageProducerSnapped = new FilteredImageSource(image.getSource(), paletteSnapFilter);
-        ToolkitImage filteredImage = (ToolkitImage) Toolkit.getDefaultToolkit().createImage(imageProducerSnapped);
+        Image filteredImage = Toolkit.getDefaultToolkit().createImage(imageProducerSnapped);
         filteredImage.getWidth(null); // triggers an image load
-        RenderedImage writableImage = filteredImage.getBufferedImage();
+        RenderedImage writableImage = Mirror.of(filteredImage).magicIntrinsic(BufferedImageHolder.class).getBufferedImage();
         ImageIO.write(writableImage, IMAGE_FORMAT, new File(IMAGE_PATH + "_modified" + EXT_SEPARATOR + IMAGE_FORMAT));
     }
 
-    public static double compareLAB(double[] lab1, double[] lab2) {
-        return Math.sqrt(Math.pow(lab1[0] - lab2[0], 2) + Math.pow(lab1[1] - lab2[1], 2) + Math.pow(lab1[2] - lab2[2], 2));
+    interface BufferedImageHolder {
+        BufferedImage getBufferedImage();
+    }
+
+    public static double deltaKSquared(double[] lab1, double[] lab2) {
+        return Math.pow(lab1[0] - lab2[0], 2) + Math.pow(lab1[1] - lab2[1], 2) + Math.pow(lab1[2] - lab2[2], 2);
     }
 
     public static double[] rgbToLab(int rgb) {
